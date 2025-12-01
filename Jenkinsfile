@@ -1,5 +1,4 @@
 pipeline {
-    // Agen apa pun yang tersedia, diutamakan yang memiliki PHP/Composer/Powershell
     agent any
 
     stages {
@@ -7,7 +6,6 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 echo 'Stage 1: Mengambil kode dari GitHub...'
-                // Mengambil kode dari repositori yang dikonfigurasi di Job Jenkins
                 checkout scm
             }
         }
@@ -16,7 +14,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Stage 2: Menginstal dependensi PHP (Composer) dan PHPUnit...'
-                // Menginstal semua dependensi, termasuk PHPUnit dari composer.json
+                // Pastikan PHP dan Composer sudah terdaftar di PATH Windows
                 powershell 'composer install --no-dev' 
             }
         }
@@ -25,9 +23,9 @@ pipeline {
         stage('Run Unit Tests') {
             steps {
                 echo 'Stage 3: Menjalankan PHPUnit dan membuat laporan JUnit...'
-                // Menjalankan tes di folder 'tests' dan membuat laporan XML
-                // Jika folder tes Anda bernama lain, ganti 'tests'
-                powershell 'vendor/bin/phpunit tests --log-junit target/junit.xml' 
+                // KRITIS: Menjalankan script PHPUnit melalui interpreter 'php' 
+                // karena PowerShell tidak mengenali file tanpa ekstensi.
+                powershell 'php vendor/bin/phpunit tests --log-junit target/junit.xml' 
             }
         }
         
@@ -43,7 +41,7 @@ pipeline {
         // Stage 5: Deployment ke XAMPP (Stage Kustom Anda)
         stage('Deploy to XAMPP') {
             when {
-                // Hanya jalankan deployment jika semua stage di atas berhasil (success)
+                // Deployment hanya dijalankan jika stage-stage sebelumnya sukses
                 expression { return currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
             steps {
@@ -54,21 +52,20 @@ pipeline {
                 '''
             }
         }
-    } // Akhir dari stages
+    }
 
-    // Post Actions: Pelaporan dan Pembersihan (Tugas 3)
+    // Post Actions: Pelaporan dan Penanganan Kegagalan
     post {
-        // Always: Selalu dijalankan, meskipun stage di atas gagal (untuk publikasi laporan)
+        // Always: Selalu dijalankan untuk publikasi laporan, meskipun tes gagal
         always {
             echo 'Mempublikasikan hasil pengujian ke Jenkins...'
-            // Membaca file XML untuk menampilkan laporan tes secara grafis
             junit 'target/junit.xml' 
-        }
-        failure {
-            echo 'Pipeline gagal. Periksa log eksekusi dan pastikan PHP, Composer, dan PHPUnit ada di PATH.'
         }
         success {
             echo 'SEMUA TUGAS CI/CD BERHASIL DISELESAIKAN! 🎉'
+        }
+        failure {
+            echo 'Pipeline gagal. Periksa log eksekusi untuk detail error tes atau eksekusi.'
         }
     }
 }
