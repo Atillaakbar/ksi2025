@@ -1,34 +1,37 @@
 pipeline {
+    // Agen apa pun yang tersedia, diutamakan yang memiliki PHP/Composer/Powershell
     agent any
 
     stages {
-        stage('Checkout') {
+        // Stage 1: Mengambil Kode dari GitHub (Tugas 1 - Otomasi Webhook)
+        stage('Checkout Code') {
             steps {
                 echo 'Stage 1: Mengambil kode dari GitHub...'
-                // Menggunakan 'checkout scm' akan mengambil kode dari repositori yang dikonfigurasi di Job Jenkins.
+                // Mengambil kode dari repositori yang dikonfigurasi di Job Jenkins
                 checkout scm
             }
         }
 
-        // --- Tugas 3: Persiapan Testing ---
+        // Stage 2: Instalasi Dependensi (Persiapan Tugas 3)
         stage('Install Dependencies') {
             steps {
-                echo 'Stage 2: Menginstal dependensi PHP (Composer)...'
-                // Menginstal semua dependensi, termasuk PHPUnit yang didefinisikan di composer.json
-                powershell 'composer install'
+                echo 'Stage 2: Menginstal dependensi PHP (Composer) dan PHPUnit...'
+                // Menginstal semua dependensi, termasuk PHPUnit dari composer.json
+                powershell 'composer install --no-dev' 
             }
         }
         
-        // --- Tugas 3: Pengujian Unit ---
+        // Stage 3: Menjalankan Unit Test (Tugas 3)
         stage('Run Unit Tests') {
             steps {
                 echo 'Stage 3: Menjalankan PHPUnit dan membuat laporan JUnit...'
-                // Menjalankan tes dan menyimpan hasilnya ke file XML untuk pelaporan Jenkins
-                powershell 'vendor/bin/phpunit --log-junit target/junit.xml' 
+                // Menjalankan tes di folder 'tests' dan membuat laporan XML
+                // Jika folder tes Anda bernama lain, ganti 'tests'
+                powershell 'vendor/bin/phpunit tests --log-junit target/junit.xml' 
             }
         }
         
-        // --- Tugas 2: Eksekusi Kode ---
+        // Stage 4: Eksekusi Kode PHP (Tugas 2)
         stage('Execute PHP Script') {
             steps {
                 echo 'Stage 4: Menjalankan powershell php index.php...'
@@ -37,8 +40,12 @@ pipeline {
             }
         }
         
-        // --- Stage Kustom: Deployment ---
+        // Stage 5: Deployment ke XAMPP (Stage Kustom Anda)
         stage('Deploy to XAMPP') {
+            when {
+                // Hanya jalankan deployment jika semua stage di atas berhasil (success)
+                expression { return currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+            }
             steps {
                 echo 'Stage 5: Menyalin file ke folder XAMPP htdocs...'
                 bat '''
@@ -47,18 +54,21 @@ pipeline {
                 '''
             }
         }
-    }
+    } // Akhir dari stages
 
-    // --- Tugas 3: Pelaporan (Post-Build Action) ---
+    // Post Actions: Pelaporan dan Pembersihan (Tugas 3)
     post {
-        // Blok 'always' memastikan laporan diterbitkan, meskipun ada tes yang gagal.
+        // Always: Selalu dijalankan, meskipun stage di atas gagal (untuk publikasi laporan)
         always {
             echo 'Mempublikasikan hasil pengujian ke Jenkins...'
-            // Membaca file XML yang dibuat oleh PHPUnit untuk menampilkan laporan grafis
+            // Membaca file XML untuk menampilkan laporan tes secara grafis
             junit 'target/junit.xml' 
         }
         failure {
-            echo 'Pipeline gagal. Cek Console Output untuk detail error!'
+            echo 'Pipeline gagal. Periksa log eksekusi dan pastikan PHP, Composer, dan PHPUnit ada di PATH.'
+        }
+        success {
+            echo 'SEMUA TUGAS CI/CD BERHASIL DISELESAIKAN! 🎉'
         }
     }
 }
