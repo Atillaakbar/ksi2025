@@ -21,22 +21,21 @@ pipeline {
         
         // Stage 3: Menjalankan Unit Test (Tugas 3)
         stage('Run Unit Tests') {
-            steps {
-                echo 'Stage 3: Menjalankan PHPUnit dan membuat laporan JUnit...'
-                // Perbaikan Krusial: Memanggil PHPUnit menggunakan interpreter 'php' 
-                // dengan jalur relatif Windows (.\\) agar PowerShell dapat menemukannya.
-                powershell 'php .\\vendor\\bin\\phpunit tests --log-junit target/junit.xml' 
-            }
-        }
+    steps {
+        echo 'Stage 3: Menjalankan PHPUnit dan membuat laporan JUnit...'
+        // Mengganti .\\ menjadi ./ (forward slash) untuk kompatibilitas yang lebih baik
+        powershell 'php ./vendor/bin/phpunit tests --log-junit target/junit.xml' 
+    }
+}
         
         // Stage 4: Eksekusi Kode PHP (Tugas 2)
-        stage('Execute PHP Script') {
-            steps {
-                echo 'Stage 4: Menjalankan powershell php index.php...'
-                // Menjalankan perintah wajib sesuai permintaan tugas
-                powershell 'php .\\index.php' 
-            }
-        }
+       stage('Execute PHP Script') {
+    steps {
+        echo 'Stage 4: Menjalankan powershell php index.php...'
+        // Mengganti .\\ menjadi ./ (forward slash)
+        powershell 'php ./index.php' 
+    }
+}
         
         // Stage 5: Deployment ke XAMPP (Stage Kustom Anda)
         stage('Deploy to XAMPP') {
