@@ -1,8 +1,9 @@
 pipeline {
+    // Menentukan agen yang akan menjalankan pipeline
     agent any
 
     stages {
-        // Stage 1: Mengambil Kode dari GitHub (Tugas 1 - Otomasi Webhook)
+        // Stage 1: Checkout Code (Memastikan Webhook berfungsi)
         stage('Checkout Code') {
             steps {
                 echo 'Stage 1: Mengambil kode dari GitHub...'
@@ -10,11 +11,10 @@ pipeline {
             }
         }
 
-        // Stage 2: Instalasi Dependensi (Persiapan Tugas 3)
+        // Stage 2: Instalasi Dependensi (Persiapan Unit Test)
         stage('Install Dependencies') {
             steps {
                 echo 'Stage 2: Menginstal dependensi PHP (Composer) dan PHPUnit...'
-                // Pastikan PHP dan Composer sudah terdaftar di PATH Windows
                 powershell 'composer install --no-dev' 
             }
         }
@@ -23,9 +23,9 @@ pipeline {
         stage('Run Unit Tests') {
             steps {
                 echo 'Stage 3: Menjalankan PHPUnit dan membuat laporan JUnit...'
-                // KRITIS: Menjalankan script PHPUnit melalui interpreter 'php' 
-                // karena PowerShell tidak mengenali file tanpa ekstensi.
-                powershell 'php vendor/bin/phpunit tests --log-junit target/junit.xml' 
+                // Perbaikan Krusial: Memanggil PHPUnit menggunakan interpreter 'php' 
+                // dengan jalur relatif Windows (.\\) agar PowerShell dapat menemukannya.
+                powershell 'php .\\vendor\\bin\\phpunit tests --log-junit target/junit.xml' 
             }
         }
         
@@ -33,15 +33,15 @@ pipeline {
         stage('Execute PHP Script') {
             steps {
                 echo 'Stage 4: Menjalankan powershell php index.php...'
-                // Perintah wajib sesuai permintaan tugas
-                powershell 'php index.php' 
+                // Menjalankan perintah wajib sesuai permintaan tugas
+                powershell 'php .\\index.php' 
             }
         }
         
         // Stage 5: Deployment ke XAMPP (Stage Kustom Anda)
         stage('Deploy to XAMPP') {
             when {
-                // Deployment hanya dijalankan jika stage-stage sebelumnya sukses
+                // Deployment hanya dijalankan jika semua stage di atas berhasil
                 expression { return currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
             steps {
@@ -56,7 +56,7 @@ pipeline {
 
     // Post Actions: Pelaporan dan Penanganan Kegagalan
     post {
-        // Always: Selalu dijalankan untuk publikasi laporan, meskipun tes gagal
+        // Selalu dijalankan untuk publikasi laporan tes
         always {
             echo 'Mempublikasikan hasil pengujian ke Jenkins...'
             junit 'target/junit.xml' 
